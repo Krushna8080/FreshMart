@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart } from 'lucide-react';
@@ -13,6 +14,14 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsAdding(true);
+    addToCart(product);
+    setTimeout(() => setIsAdding(false), 500);
+  };
 
   return (
     <motion.div
@@ -49,14 +58,16 @@ export default function ProductCard({ product }: ProductCardProps) {
             </span>
             <span className="text-sm text-gray-500 ml-1">/ {product.unit}</span>
           </div>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => addToCart(product)}
-            className="flex items-center space-x-1 px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+          <button
+            onClick={handleAddToCart}
+            className={`p-2 rounded-full ${
+              isAdding
+                ? 'bg-green-100 text-green-600'
+                : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600'
+            } transition-all duration-300`}
           >
-            <ShoppingCart className="h-5 w-5" />
-            <span>Add</span>
-          </motion.button>
+            <ShoppingCart className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </motion.div>
