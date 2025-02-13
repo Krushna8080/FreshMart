@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation';
 
 export default function AccountPage() {
   const { user: authUser } = useAuth();
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const router = useRouter();
@@ -64,7 +63,6 @@ export default function AccountPage() {
 
             if (newProfile) {
               console.log('New profile created:', newProfile);
-              setUser(newProfile);
               setFormData({
                 full_name: '',
                 phone: '',
@@ -77,7 +75,6 @@ export default function AccountPage() {
           }
         } else if (profileData) {
           console.log('Existing profile found:', profileData);
-          setUser(profileData);
           setFormData({
             full_name: profileData.full_name || '',
             phone: profileData.phone || '',

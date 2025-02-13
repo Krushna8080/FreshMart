@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 
@@ -45,10 +46,11 @@ export default function CartPage() {
             <li key={item.product.id} className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0 w-24 h-24 relative rounded-md overflow-hidden">
-                  <img
+                  <Image
                     src={item.product.image}
                     alt={item.product.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 </div>
                 <div className="ml-6 flex-1">

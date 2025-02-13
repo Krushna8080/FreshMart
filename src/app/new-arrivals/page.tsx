@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Clock, Filter } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { getNewArrivals } from '@/data/products';
+import Link from 'next/link';
 
 export default function NewArrivals() {
   const [sortBy, setSortBy] = useState('newest');

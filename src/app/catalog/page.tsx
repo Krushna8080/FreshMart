@@ -6,6 +6,8 @@ import { Search, ChevronDown } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { products, categories, sortProducts } from '@/data/products';
 import type { Product } from '@/types';
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function CatalogPage() {
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -98,7 +100,7 @@ export default function CatalogPage() {
         {/* Results Count */}
         <div className="flex justify-between items-center mb-6">
           <p className="text-gray-600">
-            Showing {sortedProducts.length} products
+            Showing {filteredProducts.length} product{filteredProducts.length === 1 ? &quot;&quot; : &quot;s&quot;}
           </p>
         </div>
 

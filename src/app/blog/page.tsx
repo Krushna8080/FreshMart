@@ -4,63 +4,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, User, ArrowRight } from 'lucide-react';
-
-const blogPosts = [
-  {
-    id: 1,
-    title: 'The Benefits of Organic Produce',
-    excerpt: 'Discover why organic produce is not just a trend but a healthier choice for you and the environment.',
-    image: '/blog/organic-produce.jpg',
-    author: 'Sarah Johnson',
-    date: 'Feb 15, 2024',
-    category: 'Healthy Living'
-  },
-  {
-    id: 2,
-    title: 'Seasonal Cooking: Spring Edition',
-    excerpt: 'Make the most of spring vegetables with these delicious and easy-to-follow recipes.',
-    image: '/blog/seasonal-cooking.jpg',
-    author: 'Chef Michael',
-    date: 'Feb 12, 2024',
-    category: 'Recipes'
-  },
-  {
-    id: 3,
-    title: 'Sustainable Shopping Guide',
-    excerpt: 'Learn how to make environmentally conscious choices while grocery shopping.',
-    image: '/blog/sustainable-shopping.jpg',
-    author: 'Emma Green',
-    date: 'Feb 10, 2024',
-    category: 'Sustainability'
-  },
-  {
-    id: 4,
-    title: 'Understanding Food Labels',
-    excerpt: 'A comprehensive guide to reading and understanding nutrition labels and food certifications.',
-    image: '/blog/food-labels.jpg',
-    author: 'Dr. James Wilson',
-    date: 'Feb 8, 2024',
-    category: 'Education'
-  },
-  {
-    id: 5,
-    title: 'Meal Prep for Busy Families',
-    excerpt: 'Time-saving meal preparation tips and tricks for families on the go.',
-    image: '/blog/meal-prep.jpg',
-    author: 'Lisa Thompson',
-    date: 'Feb 5, 2024',
-    category: 'Tips & Tricks'
-  },
-  {
-    id: 6,
-    title: 'Farm to Table: Local Producers',
-    excerpt: 'Meet the local farmers and producers who supply our fresh products.',
-    image: '/blog/farm-to-table.jpg',
-    author: 'John Davis',
-    date: 'Feb 1, 2024',
-    category: 'Community'
-  }
-];
+import { blogPosts } from '@/data/blog';
 
 export default function Blog() {
   return (
@@ -126,12 +70,14 @@ export default function Blog() {
               <Link href={`/blog/${post.id}`} className="group">
                 <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
                   <div className="relative h-48">
-                    <Image
-                      src={post.image}
-                      alt={post.title}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                    <div className="relative aspect-video">
+                      <Image
+                        src={post.image}
+                        alt={post.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
                   </div>
                   <div className="p-6">
                     <span className="inline-block px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium mb-4">

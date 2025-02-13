@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { searchProducts } from '@/data/products';
 import type { Product } from '@/types';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Search as SearchIcon } from 'lucide-react';
 
 export default function SearchPage() {
@@ -33,7 +34,7 @@ export default function SearchPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          Search Results for "{query}"
+          Search Results for &quot;{query}&quot;
         </h1>
         <p className="text-gray-600">
           {results.length} {results.length === 1 ? 'product' : 'products'} found
@@ -54,10 +55,11 @@ export default function SearchPage() {
             >
               <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100 transition-all duration-300 hover:shadow-md">
                 <div className="relative aspect-square">
-                  <img
+                  <Image
                     src={product.image}
                     alt={product.name}
-                    className="object-cover w-full h-full"
+                    fill
+                    className="object-cover"
                   />
                 </div>
                 <div className="p-4">

@@ -1,3 +1,5 @@
+'use client';
+
 import { motion } from 'framer-motion';
 import { categories } from '@/data/products';
 import Link from 'next/link';
@@ -42,14 +44,14 @@ export default function CategoriesPage() {
               className="block group"
             >
               <div className="relative h-72 rounded-2xl overflow-hidden">
-                <Image
-                  src={category.image}
-                  alt={category.name}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  priority={category.id === 'fruits-vegetables' || category.id === 'dairy-eggs' || category.id === 'meat-seafood'}
-                />
+                <div className="relative aspect-square">
+                  <Image
+                    src={category.image}
+                    alt={category.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                 <div className="absolute inset-0 p-8 flex flex-col justify-end">
                   <h3 className="text-2xl font-bold text-white mb-2">{category.name}</h3>
