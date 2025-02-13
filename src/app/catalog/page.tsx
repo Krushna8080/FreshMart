@@ -27,7 +27,7 @@ export default function CatalogPage() {
   const sortedProducts = sortProducts(filteredProducts, sortBy);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-green-900 to-green-700 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -100,7 +100,7 @@ export default function CatalogPage() {
         {/* Results Count */}
         <div className="flex justify-between items-center mb-6">
           <p className="text-gray-600">
-            Showing {filteredProducts.length} product{filteredProducts.length === 1 ? &quot;&quot; : &quot;s&quot;}
+            Showing {filteredProducts.length} product{filteredProducts.length === 1 ? "" : "s"}
           </p>
         </div>
 
@@ -126,6 +126,6 @@ export default function CatalogPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 } 
