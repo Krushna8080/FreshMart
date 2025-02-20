@@ -8,6 +8,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 export const metadata: Metadata = {
   title: 'FreshMart - Your Online Grocery Store',
   description: 'Fresh groceries delivered to your doorstep. Shop from our wide selection of fresh produce, dairy, meat, and pantry items.',
+  viewport: 'width=device-width, initial-scale=1',
 };
 
 export default function RootLayout({
@@ -16,13 +17,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      <body className="font-sans" suppressHydrationWarning>
+    <html lang="en" className="h-full">
+      <body className="min-h-screen bg-gray-50">
         <AuthProvider>
           <CartProvider>
-            <div className="min-h-screen flex flex-col">
+            <div className="flex min-h-screen flex-col">
               <Navbar />
-              <main className="flex-grow pt-32">
+              <main className="flex-1 pt-16 sm:pt-24">
                 {children}
               </main>
               <Footer />
