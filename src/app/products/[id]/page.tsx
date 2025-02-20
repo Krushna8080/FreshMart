@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -9,21 +9,15 @@ import { ShoppingCart, ChevronLeft, Plus, Minus } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { products, getRelatedProducts } from '@/data/products';
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default function ProductPage({ params, searchParams }: PageProps) {
-  const resolvedParams = use(params);
-  const product = products.find(p => p.id === resolvedParams.id);
+export default function ProductPage() {
+  const params = useParams();
+  const productId = params.id as string;
+  const product = products.find(p => p.id === productId);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
-  const relatedProducts = getRelatedProducts(resolvedParams.id, 4);
+  const relatedProducts = getRelatedProducts(productId, 4);
 
   if (!product) {
     notFound();
@@ -36,7 +30,8 @@ export default function ProductPage({ params, searchParams }: PageProps) {
       await addToCart(product, quantity);
       setQuantity(1);
       setIsAdding(false);
-    } catch (err) {
+    } catch (error) {
+      console.error('Error adding to cart:', error);
       setError('Failed to add to cart. Please try again.');
       setIsAdding(false);
       setTimeout(() => setError(null), 3000);
@@ -47,7 +42,8 @@ export default function ProductPage({ params, searchParams }: PageProps) {
     setError(null);
     try {
       await addToCart(relatedProduct, 1);
-    } catch (err) {
+    } catch (error) {
+      console.error('Error adding related product:', error);
       setError('Failed to add to cart. Please try again.');
       setTimeout(() => setError(null), 3000);
     }

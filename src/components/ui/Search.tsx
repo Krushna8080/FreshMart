@@ -161,8 +161,9 @@ export default function Search() {
                       <Image
                         src={product.image}
                         alt={product.name}
-                        fill
-                        className="object-cover rounded-md"
+                        width={48}
+                        height={48}
+                        className="w-12 h-12 object-cover rounded-md"
                       />
                     </div>
                     <div className="ml-3 flex-1">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, ShoppingBag } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface Order {

@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ShoppingBag, Truck, CreditCard, RotateCcw } from 'lucide-react';
@@ -11,7 +12,7 @@ interface FAQ {
 
 interface FAQCategory {
   title: string;
-  icon: JSX.Element;
+  icon: React.ReactElement;
   faqs: FAQ[];
 }
 

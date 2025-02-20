@@ -25,7 +25,8 @@ export default function ProductCard({ product }: ProductCardProps) {
     try {
       await addToCart(product);
       setTimeout(() => setIsAdding(false), 500);
-    } catch (err) {
+    } catch (error) {
+      console.error('Error adding to cart:', error);
       setError('Failed to add to cart');
       setIsAdding(false);
       setTimeout(() => setError(null), 3000);

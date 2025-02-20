@@ -1,20 +1,14 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { blogPosts } from '@/data/blog';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { ArrowLeft, Calendar, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { blogPosts } from '@/data/blog';
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default function BlogPostPage({ params, searchParams }: PageProps) {
+export default function BlogPost() {
+  const params = useParams();
   const post = blogPosts.find(post => post.id === params.id);
 
   if (!post) {

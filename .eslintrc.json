@@ -5,9 +5,10 @@
     "plugin:@typescript-eslint/recommended"
   ],
   "rules": {
-    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
     "react/no-unescaped-entities": "off",
-    "@typescript-eslint/no-explicit-any": "warn",
-    "react/display-name": "off"
+    "@typescript-eslint/no-explicit-any": "error",
+    "react/display-name": "off",
+    "@next/next/no-img-element": "warn"
   }
 } 

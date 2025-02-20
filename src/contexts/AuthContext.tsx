@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, Suspense } from 'react';
 import { User, AuthError } from '@supabase/supabase-js';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -11,34 +11,69 @@ interface UserData {
   address?: string;
 }
 
-interface AuthContextType {
+interface AuthState {
   user: User | null;
+  error: AuthError | null;
   loading: boolean;
+}
+
+interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, userData: UserData) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const initialState: AuthState = {
+  user: null,
+  error: null,
+  loading: true
+};
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function AuthProviderContent({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<AuthState>(initialState);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+  const updateState = useCallback((newState: Partial<AuthState>) => {
+    setState(prev => ({ ...prev, ...newState }));
+  }, []);
 
-    // Listen for changes on auth state
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+  const handleError = useCallback((error: AuthError | null) => {
+    if (error) {
+      updateState({ error });
+    }
+    return error;
+  }, [updateState]);
+
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          handleError(error);
+        }
+        updateState({ 
+          user: session?.user ?? null,
+          loading: false 
+        });
+      } catch (error) {
+        if (error instanceof AuthError) {
+          handleError(error);
+        }
+        updateState({ loading: false });
+      }
+    };
+
+    initializeAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      updateState({ 
+        user: session?.user ?? null,
+        error: null 
+      });
+
       if (session?.user) {
         const redirectTo = searchParams.get('redirectedFrom');
         if (redirectTo) {
@@ -47,12 +82,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [router, searchParams]);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router, searchParams, handleError, updateState]);
 
   const signUp = async (email: string, password: string, userData: UserData) => {
+    updateState({ error: null });
+    
     try {
-      // First sign up the user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -60,76 +98,111 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: userData,
         },
       });
-      
+
       if (signUpError) {
-        console.error('Sign up error:', signUpError.message);
-        return { error: signUpError };
+        return { error: handleError(signUpError) };
       }
 
-      // If signup successful, create profile
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            email: email,
-            full_name: userData.full_name || '',
-            phone: userData.phone || '',
-            address: userData.address || '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-          return { error: profileError };
-        }
+      if (!authData.user) {
+        return { error: handleError(new AuthError('Failed to create user account')) };
       }
-      
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: authData.user.id,
+          email,
+          full_name: userData.full_name || '',
+          phone: userData.phone || '',
+          address: userData.address || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (profileError) {
+        return { error: handleError(new AuthError(profileError.message)) };
+      }
+
       return { error: null };
     } catch (error) {
-      console.error('Unexpected error during sign up:', error);
-      return { error: error as AuthError };
+      if (error instanceof AuthError) {
+        return { error: handleError(error) };
+      }
+      return { error: handleError(new AuthError('An unexpected error occurred')) };
     }
   };
 
   const signIn = async (email: string, password: string) => {
+    updateState({ error: null });
+    
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
-      if (error) {
-        console.error('Sign in error:', error.message);
+
+      if (signInError) {
+        return { error: handleError(signInError) };
       }
-      
-      return { error };
+
+      return { error: null };
     } catch (error) {
-      console.error('Unexpected error during sign in:', error);
-      return { error: error as AuthError };
+      if (error instanceof AuthError) {
+        return { error: handleError(error) };
+      }
+      return { error: handleError(new AuthError('An unexpected error occurred')) };
     }
   };
 
   const signOut = async () => {
+    updateState({ error: null });
+    
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Sign out error:', error.message);
-        throw error;
+      const { error: signOutError } = await supabase.auth.signOut();
+      
+      if (signOutError) {
+        handleError(signOutError);
+        throw signOutError;
       }
+      
       router.push('/');
     } catch (error) {
-      console.error('Unexpected error during sign out:', error);
-      throw error;
+      if (error instanceof AuthError) {
+        handleError(error);
+        throw error;
+      }
+      const authError = new AuthError('Failed to sign out');
+      handleError(authError);
+      throw authError;
     }
   };
 
+  const contextValue: AuthContextType = {
+    ...state,
+    signIn,
+    signUp,
+    signOut
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
-      {!loading && children}
+    <AuthContext.Provider value={contextValue}>
+      {!state.loading && children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => useContext(AuthContext); 
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthProviderContent>{children}</AuthProviderContent>
+    </Suspense>
+  );
+}
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}; 

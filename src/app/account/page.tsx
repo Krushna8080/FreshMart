@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-// import { User } from '@supabase/supabase-js';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AccountPage() {
-  const { user: authUser } = useAuth();
+  const auth = useAuth();
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const router = useRouter();
@@ -20,10 +19,15 @@ export default function AccountPage() {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
+    if (!auth) {
+      router.push('/auth/signin');
+      return;
+    }
+    
     const loadProfile = async () => {
       setLoading(true);
       try {
-        if (!authUser?.id) {
+        if (!auth.user?.id) {
           router.push('/auth/signin');
           return;
         }
@@ -32,7 +36,7 @@ export default function AccountPage() {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', authUser.id)
+          .eq('id', auth.user.id)
           .single();
 
         if (profileError) {
@@ -41,8 +45,8 @@ export default function AccountPage() {
             const { data: newProfile, error: createError } = await supabase
               .from('profiles')
               .insert({
-                id: authUser.id,
-                email: authUser.email,
+                id: auth.user.id,
+                email: auth.user.email,
                 full_name: '',
                 phone: '',
                 address: ''
@@ -81,7 +85,7 @@ export default function AccountPage() {
     };
 
     loadProfile();
-  }, [authUser, router]);
+  }, [auth, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -100,7 +104,7 @@ export default function AccountPage() {
     setMessage({ type: '', text: '' });
 
     try {
-      if (!authUser?.id) {
+      if (!auth?.user?.id) {
         throw new Error('Not authenticated');
       }
 
@@ -116,7 +120,7 @@ export default function AccountPage() {
           phone: formData.phone.trim(),
           address: formData.address.trim()
         })
-        .eq('id', authUser.id);
+        .eq('id', auth.user.id);
 
       if (updateError) {
         throw updateError;
@@ -164,7 +168,7 @@ export default function AccountPage() {
             </label>
             <input
               type="email"
-              value={authUser?.email || ''}
+              value={auth?.user?.email || ''}
               disabled
               className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 bg-gray-50 text-gray-500"
             />

@@ -5,19 +5,19 @@ import { Filter, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductFilterProps {
-  onSortChange: (value: string) => void;
-  onPriceRangeChange: (min: number, max: number) => void;
   sortBy: string;
   minPrice: number;
   maxPrice: number;
+  onSortChange: (value: string) => void;
+  onPriceRangeChange: (min: number, max: number) => void;
 }
 
 export default function ProductFilter({
-  onSortChange,
-  onPriceRangeChange,
   sortBy,
   minPrice,
-  maxPrice
+  maxPrice,
+  onSortChange,
+  onPriceRangeChange
 }: ProductFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
 

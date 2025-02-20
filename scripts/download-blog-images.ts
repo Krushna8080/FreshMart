@@ -1,6 +1,6 @@
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Create blog images directory if it doesn't exist
 const blogDir = 'public/blog';
@@ -35,23 +35,22 @@ const blogImages = [
   }
 ];
 
-async function downloadImage(url: string, filepath: string): Promise<void> {
+const downloadImage = (url: string, filepath: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const fullUrl = `${url}?auto=format&fit=crop&w=1200&h=800&q=80`;
     https.get(fullUrl, (response) => {
       if (response.statusCode === 200) {
-        const writeStream = fs.createWriteStream(filepath);
-        response.pipe(writeStream);
-        writeStream.on('finish', () => {
-          writeStream.close();
-          resolve();
-        });
+        response
+          .pipe(fs.createWriteStream(filepath))
+          .on('error', reject)
+          .once('close', () => resolve());
       } else {
-        reject(new Error(`Failed to download image: ${response.statusCode}`));
+        response.resume();
+        reject(new Error(`Request Failed With a Status Code: ${response.statusCode}`));
       }
-    }).on('error', reject);
+    });
   });
-}
+};
 
 async function downloadAllBlogImages() {
   console.log('Starting blog image downloads...');

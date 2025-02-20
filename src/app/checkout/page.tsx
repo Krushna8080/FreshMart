@@ -6,7 +6,7 @@ import { useCart } from '@/contexts/CartContext';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { supabase } from '@/lib/supabase';
-import { CreditCard, ShoppingBag } from 'lucide-react';
+import { ShoppingBag } from 'lucide-react';
 
 interface FormData {
   full_name: string;
@@ -20,7 +20,7 @@ interface FormData {
 
 export default function Checkout() {
   const router = useRouter();
-  const { items, total, clearCart } = useCart();
+  const cart = useCart();
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +34,13 @@ export default function Checkout() {
     expiry: '',
     cvv: ''
   });
+
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (!loading && (!cart || cart.items.length === 0)) {
+      router.push('/cart');
+    }
+  }, [loading, cart, router]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -107,6 +114,11 @@ export default function Checkout() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!cart) {
+      setError('Cart is not initialized');
+      return;
+    }
+
     setProcessing(true);
     setError(null);
 
@@ -133,20 +145,12 @@ export default function Checkout() {
         throw new Error('Payment failed');
       }
 
-      console.log('Creating order with data:', {
-        user_id: user.id,
-        total_amount: total,
-        status: 'paid',
-        shipping_address: formData.address,
-        contact_phone: formData.phone
-      });
-
       // Create the order
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
-          total_amount: total,
+          total_amount: cart.total,
           status: 'paid',
           shipping_address: formData.address,
           contact_phone: formData.phone,
@@ -165,18 +169,14 @@ export default function Checkout() {
         throw new Error('Order was not created');
       }
 
-      console.log('Order created successfully:', order);
-
       // Create order items
-      const orderItems = items.map(item => ({
+      const orderItems = cart.items.map(item => ({
         order_id: order.id,
         product_id: item.product.id,
         quantity: item.quantity,
         price: item.product.price,
         created_at: new Date().toISOString()
       }));
-
-      console.log('Creating order items:', orderItems);
 
       const { error: itemsError } = await supabase
         .from('order_items')
@@ -196,10 +196,8 @@ export default function Checkout() {
         throw new Error(`Failed to create order items: ${itemsError.message}`);
       }
 
-      console.log('Order items created successfully');
-
       // Clear cart and redirect to success page
-      await clearCart();
+      await cart.clearCart();
       router.push(`/checkout/success?orderId=${order.id}`);
     } catch (err) {
       console.error('Error processing order:', err);
@@ -221,7 +219,7 @@ export default function Checkout() {
     );
   }
 
-  if (items.length === 0) {
+  if (cart && cart.items.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-8 text-center">
         <ShoppingBag className="mx-auto h-16 w-16 text-gray-400 mb-4" />
@@ -234,14 +232,20 @@ export default function Checkout() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-8">Checkout</h1>
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
       
+      {error && (
+        <div className="mb-6 p-4 rounded-md bg-red-50 text-red-800">
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
           <div className="bg-white rounded-lg shadow p-6">
-            {items.map((item) => (
+            {cart.items.map((item) => (
               <div key={item.id} className="flex justify-between items-center mb-4">
                 <div>
                   <p className="font-medium">{item.product.name}</p>
@@ -257,7 +261,7 @@ export default function Checkout() {
             <div className="border-t pt-4 mt-4">
               <div className="flex justify-between font-bold">
                 <p>Total</p>
-                <p>${total.toFixed(2)}</p>
+                <p>${cart.total.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -362,12 +366,6 @@ export default function Checkout() {
             >
               {processing ? 'Processing...' : step === 'shipping' ? 'Continue to Payment' : 'Place Order'}
             </Button>
-
-            {error && (
-              <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-md text-sm">
-                {error}
-              </div>
-            )}
 
             {step === 'payment' && (
               <button

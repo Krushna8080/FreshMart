@@ -2,22 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { use } from 'react';
+import { useParams } from 'next/navigation';
 import { getProductsByCategory, categories, sortProducts } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 import ProductFilter from '@/components/ui/ProductFilter';
 import type { Product } from '@/types';
 
-interface PageProps {
-  params: {
-    category: string;
-  };
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default function CategoryPage({ params, searchParams }: PageProps) {
-  const resolvedParams = use(params);
-  const categorySlug = resolvedParams.category;
+export default function CategoryPage() {
+  const params = useParams();
+  const categorySlug = params.category as string;
   const [products, setProducts] = useState<Product[]>([]);
   const [sortBy, setSortBy] = useState('featured');
   const [minPrice, setMinPrice] = useState(0);

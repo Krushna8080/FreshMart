@@ -10,23 +10,29 @@ export default function SignInForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const auth = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth?.signIn) {
+      setError('Authentication not initialized');
+      return;
+    }
+
     setError('');
     setLoading(true);
 
     try {
-      const { error: signInError } = await signIn(email, password);
+      const { error: signInError } = await auth.signIn(email, password);
       if (signInError) {
         setError(signInError.message || 'Failed to sign in');
         return;
       }
       router.push('/');
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err) {
+      console.error('Sign in error:', err);
+      setError('Failed to sign in. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }

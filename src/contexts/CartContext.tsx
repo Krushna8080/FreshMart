@@ -14,12 +14,12 @@ export interface CartItem {
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: Product, quantity?: number) => Promise<void>;
-  removeFromCart: (cartItemId: string) => void;
-  updateQuantity: (cartItemId: string, quantity: number) => void;
-  clearCart: () => void;
   total: number;
   totalItems: number;
+  addToCart: (product: Product, quantity?: number) => Promise<void>;
+  removeFromCart: (cartItemId: string) => Promise<void>;
+  updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -31,19 +31,19 @@ const MAX_QUANTITY_PER_ITEM = 99;
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const auth = useAuth();
 
   // Load cart from localStorage on mount
   useEffect(() => {
     const loadCart = async () => {
       setIsLoading(true);
       try {
-        if (user) {
+        if (auth?.user) {
           // Load cart from Supabase for authenticated users
           const { data: cartItems, error } = await supabase
             .from('cart_items')
             .select('*')
-            .eq('user_id', user.id);
+            .eq('user_id', auth.user.id);
 
           if (error) {
             console.error('Error loading cart from Supabase:', error);
@@ -81,185 +81,135 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     };
 
     loadCart();
-  }, [user]);
+  }, [auth?.user]);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (!auth?.user) {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    }
+  }, [items, auth?.user]);
 
   const addToCart = async (product: Product, quantity: number = 1) => {
-    if (!product?.id || quantity < 1) {
-      throw new Error('Invalid product or quantity');
+    if (quantity < 1 || quantity > MAX_QUANTITY_PER_ITEM) {
+      throw new Error(`Quantity must be between 1 and ${MAX_QUANTITY_PER_ITEM}`);
     }
 
-    try {
-      if (user) {
-        // Add item to Supabase for authenticated users
-        const { data, error } = await supabase
-          .from('cart_items')
-          .insert({
-            user_id: user.id,
-            product_id: product.id,
-            quantity: Math.min(quantity, MAX_QUANTITY_PER_ITEM)
-          })
-          .select()
-          .single();
+    const existingItem = items.find(item => item.product.id === product.id);
 
-        if (error) {
-          console.error('Error adding to Supabase cart:', error);
-          throw error;
-        }
+    if (existingItem) {
+      const newQuantity = Math.min(existingItem.quantity + quantity, MAX_QUANTITY_PER_ITEM);
+      await updateQuantity(existingItem.id, newQuantity);
+      return;
+    }
 
-        if (data) {
-          // Update local state with the returned data from Supabase
-          const newItem = {
-            id: data.id,
-            product,
-            quantity: data.quantity
-          };
-          setItems(currentItems => [...currentItems, newItem]);
-        }
-      } else {
-        // Handle guest cart in localStorage
-        const newItem = {
-          id: crypto.randomUUID(), // Use crypto.randomUUID() for guest cart items
-          product,
-          quantity: Math.min(quantity, MAX_QUANTITY_PER_ITEM)
-        };
+    if (auth?.user) {
+      const { data: newItem, error } = await supabase
+        .from('cart_items')
+        .insert({
+          user_id: auth.user.id,
+          product_id: product.id,
+          quantity
+        })
+        .select()
+        .single();
 
-        setItems(currentItems => {
-          const updatedItems = [...currentItems, newItem];
-          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedItems));
-          return updatedItems;
-        });
+      if (error) {
+        console.error('Error adding item to cart:', error);
+        throw error;
       }
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      throw error;
+
+      setItems(prev => [...prev, {
+        id: newItem.id,
+        product,
+        quantity
+      }]);
+    } else {
+      setItems(prev => [...prev, {
+        id: `${product.id}-${Date.now()}`,
+        product,
+        quantity
+      }]);
     }
   };
 
   const removeFromCart = async (cartItemId: string) => {
-    if (!cartItemId) {
-      console.error('Invalid cart item ID');
-      return;
-    }
+    if (auth?.user) {
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('id', cartItemId);
 
-    try {
-      if (user) {
-        // Remove from Supabase for authenticated users
-        const { error } = await supabase
-          .from('cart_items')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('id', cartItemId);
-
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
+      if (error) {
+        console.error('Error removing item from cart:', error);
+        throw error;
       }
-
-      // Update local state
-      setItems(currentItems => {
-        const updatedItems = currentItems.filter(item => item.id !== cartItemId);
-        if (!user) {
-          try {
-            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedItems));
-          } catch (error) {
-            console.error('Error saving to localStorage:', error);
-          }
-        }
-        return updatedItems;
-      });
-    } catch (error) {
-      console.error('Error removing from cart:', error);
-      throw error;
     }
+
+    setItems(prev => prev.filter(item => item.id !== cartItemId));
   };
 
   const updateQuantity = async (cartItemId: string, quantity: number) => {
-    if (!cartItemId) {
-      console.error('Invalid cart item ID');
-      return;
+    if (quantity < 1 || quantity > MAX_QUANTITY_PER_ITEM) {
+      throw new Error(`Quantity must be between 1 and ${MAX_QUANTITY_PER_ITEM}`);
     }
 
-    if (quantity < 1) {
-      return removeFromCart(cartItemId);
-    }
+    if (auth?.user) {
+      const { error } = await supabase
+        .from('cart_items')
+        .update({ quantity })
+        .eq('id', cartItemId);
 
-    try {
-      const newQuantity = Math.min(quantity, MAX_QUANTITY_PER_ITEM);
-
-      if (user) {
-        // Update quantity in Supabase for authenticated users
-        const { error } = await supabase
-          .from('cart_items')
-          .update({ quantity: newQuantity })
-          .eq('user_id', user.id)
-          .eq('id', cartItemId);
-
-        if (error) {
-          console.error('Supabase error:', error);
-          throw error;
-        }
+      if (error) {
+        console.error('Error updating cart item quantity:', error);
+        throw error;
       }
-
-      // Update local state
-      setItems(currentItems => {
-        const updatedItems = currentItems.map(item =>
-          item.id === cartItemId
-            ? { ...item, quantity: newQuantity }
-            : item
-        );
-        if (!user) {
-          try {
-            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedItems));
-          } catch (error) {
-            console.error('Error saving to localStorage:', error);
-          }
-        }
-        return updatedItems;
-      });
-    } catch (error) {
-      console.error('Error updating quantity:', error);
-      throw error;
     }
+
+    setItems(prev => prev.map(item =>
+      item.id === cartItemId ? { ...item, quantity } : item
+    ));
   };
 
   const clearCart = async () => {
-    try {
-      if (user) {
-        // Clear cart in Supabase for authenticated users
-        const { error } = await supabase
-          .from('cart_items')
-          .delete()
-          .eq('user_id', user.id);
+    if (auth?.user) {
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('user_id', auth.user.id);
 
-        if (error) throw error;
+      if (error) {
+        console.error('Error clearing cart:', error);
+        throw error;
       }
-      
-      // Clear local state and localStorage
-      setItems([]);
-      localStorage.removeItem(CART_STORAGE_KEY);
-    } catch (error) {
-      console.error('Error clearing cart:', error);
     }
+
+    setItems([]);
   };
 
   const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ 
-      items, 
-      addToCart, 
-      removeFromCart, 
-      updateQuantity, 
-      clearCart, 
-      total, 
+    <CartContext.Provider value={{
+      items,
+      total,
       totalItems,
-      isLoading 
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      clearCart,
+      isLoading
     }}>
       {children}
     </CartContext.Provider>
   );
 }
 
-export const useCart = () => useContext(CartContext); 
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+}; 
