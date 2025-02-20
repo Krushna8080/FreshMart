@@ -1,10 +1,11 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import Image from 'next/image';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, User } from 'lucide-react';
+import Image from 'next/image';
 import { blogPosts } from '@/data/blog';
+import { motion } from 'framer-motion';
+import { Calendar, User } from 'lucide-react';
 
 export default function Blog() {
   return (

@@ -12,6 +12,8 @@ export default function Catalog() {
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
+  const [sortOption, setSortOption] = useState<'price-asc' | 'price-desc' | 'name'>('name');
   
   // Get all products with error handling
   const allProducts = getAllProducts();
@@ -23,7 +25,7 @@ export default function Catalog() {
       const matchesSearch = 
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
+      return matchesCategory && matchesSearch && product.price >= priceRange[0] && product.price <= priceRange[1];
     } catch (err) {
       console.error('Error filtering product:', err);
       return false;
@@ -33,7 +35,18 @@ export default function Catalog() {
   // Sort filtered products with error handling
   const sortedProducts = (() => {
     try {
-      return sortProducts(filteredProducts, sortBy);
+      return filteredProducts.sort((a, b) => {
+        switch (sortOption) {
+          case 'price-asc':
+            return a.price - b.price;
+          case 'price-desc':
+            return b.price - a.price;
+          case 'name':
+            return a.name.localeCompare(b.name);
+          default:
+            return 0;
+        }
+      });
     } catch (err) {
       console.error('Error sorting products:', err);
       setError('Error sorting products. Please try again.');
@@ -97,15 +110,13 @@ export default function Catalog() {
             {/* Sort By */}
             <div className="relative">
               <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as 'price-asc' | 'price-desc' | 'name')}
                 className="w-full pl-4 pr-10 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none"
               >
-                <option value="featured">Featured</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
+                <option value="price-asc">Price: Low to High</option>
+                <option value="price-desc">Price: High to Low</option>
                 <option value="name">Name</option>
-                <option value="popularity">Popularity</option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 pointer-events-none" />
             </div>
