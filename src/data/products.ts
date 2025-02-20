@@ -374,3 +374,8 @@ export const getNewArrivals = () => {
   // For demo purposes, we'll consider the last 8 products as new arrivals
   return products.slice(-8);
 };
+
+// Function to get all products
+export const getAllProducts = () => {
+  return products;
+};

@@ -10,11 +10,11 @@ export default function CartPage() {
   const router = useRouter();
   const { items, updateQuantity, removeFromCart, total } = useCart();
 
-  const handleQuantityChange = (productId: string, newQuantity: number) => {
+  const handleQuantityChange = (cartItemId: string, newQuantity: number) => {
     if (newQuantity === 0) {
-      removeFromCart(productId);
+      removeFromCart(cartItemId);
     } else {
-      updateQuantity(productId, newQuantity);
+      updateQuantity(cartItemId, newQuantity);
     }
   };
 
@@ -25,7 +25,7 @@ export default function CartPage() {
           <ShoppingBag className="mx-auto h-16 w-16 text-gray-400" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
-        <p className="text-gray-600 mb-8">Looks like you haven't added any items to your cart yet.</p>
+        <p className="text-gray-600 mb-8">Looks like you haven&apos;t added any items to your cart yet.</p>
         <Link
           href="/catalog"
           className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
@@ -43,7 +43,7 @@ export default function CartPage() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <ul className="divide-y divide-gray-200">
           {items.map((item) => (
-            <li key={item.product.id} className="p-6">
+            <li key={item.id} className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0 w-24 h-24 relative rounded-md overflow-hidden">
                   <Image
@@ -66,21 +66,21 @@ export default function CartPage() {
                     <div className="flex items-center">
                       <div className="flex items-center border rounded-md">
                         <button
-                          onClick={() => handleQuantityChange(item.product.id, item.quantity - 1)}
+                          onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                           className="p-2 hover:bg-gray-50"
                         >
                           -
                         </button>
                         <span className="px-4 py-2 text-gray-900">{item.quantity}</span>
                         <button
-                          onClick={() => handleQuantityChange(item.product.id, item.quantity + 1)}
+                          onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                           className="p-2 hover:bg-gray-50"
                         >
                           +
                         </button>
                       </div>
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => removeFromCart(item.id)}
                         className="ml-4 text-red-500 hover:text-red-600"
                       >
                         Remove

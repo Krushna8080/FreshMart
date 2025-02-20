@@ -4,27 +4,42 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, ChevronDown } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
-import { products, categories, sortProducts } from '@/data/products';
+import { getAllProducts, categories, sortProducts } from '@/data/products';
 import type { Product } from '@/types';
-import Link from 'next/link';
-import Image from 'next/image';
 
-export default function CatalogPage() {
+export default function Catalog() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  
+  // Get all products with error handling
+  const allProducts = getAllProducts();
   
   // Filter products based on category and search query
-  const filteredProducts = products.filter(product => {
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
-    const matchesSearch = 
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+  const filteredProducts = allProducts.filter((product: Product) => {
+    try {
+      const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+      const matchesSearch = 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    } catch (err) {
+      console.error('Error filtering product:', err);
+      return false;
+    }
   });
 
-  // Sort filtered products
-  const sortedProducts = sortProducts(filteredProducts, sortBy);
+  // Sort filtered products with error handling
+  const sortedProducts = (() => {
+    try {
+      return sortProducts(filteredProducts, sortBy);
+    } catch (err) {
+      console.error('Error sorting products:', err);
+      setError('Error sorting products. Please try again.');
+      return filteredProducts;
+    }
+  })();
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -126,6 +141,14 @@ export default function CatalogPage() {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+            {error}
+          </div>
+        </div>
+      )}
     </main>
   );
 } 

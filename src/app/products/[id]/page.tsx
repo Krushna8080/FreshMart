@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { use } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -8,19 +9,48 @@ import { ShoppingCart, ChevronLeft, Plus, Minus } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { products, getRelatedProducts } from '@/data/products';
 
-export default function ProductPage({ params }: { params: { id: string } }) {
-  const product = products.find(p => p.id.toString() === params.id);
+interface PageProps {
+  params: {
+    id: string;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default function ProductPage({ params, searchParams }: PageProps) {
+  const resolvedParams = use(params);
+  const product = products.find(p => p.id === resolvedParams.id);
   const [quantity, setQuantity] = useState(1);
-  const { addItem } = useCart();
-  const relatedProducts = getRelatedProducts(Number(params.id), 4);
+  const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { addToCart } = useCart();
+  const relatedProducts = getRelatedProducts(resolvedParams.id, 4);
 
   if (!product) {
     notFound();
   }
 
-  const handleAddToCart = () => {
-    addItem(product, quantity);
-    setQuantity(1);
+  const handleAddToCart = async () => {
+    setIsAdding(true);
+    setError(null);
+    try {
+      await addToCart(product, quantity);
+      setQuantity(1);
+      setIsAdding(false);
+    } catch (err) {
+      setError('Failed to add to cart. Please try again.');
+      setIsAdding(false);
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const handleRelatedProductAdd = async (relatedProduct: typeof product) => {
+    setError(null);
+    try {
+      await addToCart(relatedProduct, 1);
+    } catch (err) {
+      setError('Failed to add to cart. Please try again.');
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   return (
@@ -48,7 +78,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           </div>
 
           {/* Product Details */}
-          <div>
+          <div className="relative">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
             <p className="text-gray-600 mb-6">{product.description}</p>
 
@@ -83,6 +113,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   className="p-2 hover:bg-gray-100 rounded-l-lg"
+                  disabled={isAdding}
                 >
                   <Minus className="h-4 w-4" />
                 </button>
@@ -90,6 +121,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 <button
                   onClick={() => setQuantity(quantity + 1)}
                   className="p-2 hover:bg-gray-100 rounded-r-lg"
+                  disabled={isAdding}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
@@ -102,11 +134,22 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             {/* Add to Cart Button */}
             <button
               onClick={handleAddToCart}
-              className="w-full flex items-center justify-center space-x-2 bg-green-600 text-white py-3 px-8 rounded-lg hover:bg-green-700 transition-colors"
+              disabled={isAdding}
+              className={`w-full flex items-center justify-center space-x-2 py-3 px-8 rounded-lg transition-colors ${
+                isAdding
+                  ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
             >
               <ShoppingCart className="h-5 w-5" />
-              <span>Add to Cart</span>
+              <span>{isAdding ? 'Adding...' : 'Add to Cart'}</span>
             </button>
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
           </div>
         </div>
 
@@ -143,7 +186,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                         ${relatedProduct.price.toFixed(2)}
                       </span>
                       <button
-                        onClick={() => addItem(relatedProduct)}
+                        onClick={() => handleRelatedProductAdd(relatedProduct)}
                         className="flex items-center space-x-1 px-3 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
                       >
                         <ShoppingCart className="h-5 w-5" />

@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import Link from 'next/link';
+import { CheckCircle, ShoppingBag } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface Order {
   id: string;
   created_at: string;
   total_amount: number;
   status: string;
+  shipping_address: string;
 }
 
 export default function OrderSuccessPage() {
@@ -18,7 +20,6 @@ export default function OrderSuccessPage() {
   const orderId = searchParams.get('orderId');
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClientComponentClient();
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -28,59 +29,59 @@ export default function OrderSuccessPage() {
       }
 
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push('/auth/signin');
+          return;
+        }
+
         const { data: orderData, error } = await supabase
           .from('orders')
           .select('*')
           .eq('id', orderId)
+          .eq('user_id', user.id)
           .single();
 
         if (error) throw error;
         setOrder(orderData);
       } catch (error) {
         console.error('Error loading order:', error);
+        router.push('/');
       } finally {
         setLoading(false);
       }
     };
 
     loadOrder();
-  }, [orderId, router, supabase]);
+  }, [orderId, router]);
 
   if (loading) {
-    return <div className="p-8 text-center">Loading...</div>;
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+      </div>
+    );
   }
 
   if (!order) {
     return (
-      <div className="p-8 text-center">
+      <div className="max-w-2xl mx-auto p-8 text-center">
         <h1 className="text-2xl font-bold text-red-600 mb-4">Order Not Found</h1>
         <Link
-          href="/"
+          href="/catalog"
           className="text-green-600 hover:text-green-700 underline"
         >
-          Return to Home
+          Continue Shopping
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-8 text-center">
-      <div className="bg-white rounded-lg shadow-lg p-8">
+    <div className="max-w-2xl mx-auto p-8">
+      <div className="bg-white rounded-lg shadow-lg p-8 text-center">
         <div className="mb-8">
-          <svg
-            className="mx-auto h-16 w-16 text-green-600"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
+          <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
         </div>
 
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -100,19 +101,23 @@ export default function OrderSuccessPage() {
             <p>Date: {new Date(order.created_at).toLocaleDateString()}</p>
             <p>Total Amount: ${order.total_amount.toFixed(2)}</p>
             <p>Status: {order.status}</p>
+            <p className="mt-4 text-sm">
+              Shipping Address:<br />
+              {order.shipping_address}
+            </p>
           </div>
         </div>
 
-        <div className="space-x-4">
+        <div className="flex justify-center space-x-4">
           <Link
             href="/account"
-            className="inline-block bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
           >
             View Order History
           </Link>
           <Link
             href="/catalog"
-            className="inline-block bg-gray-200 text-gray-700 px-6 py-3 rounded-md hover:bg-gray-300"
+            className="inline-flex items-center px-6 py-3 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
           >
             Continue Shopping
           </Link>

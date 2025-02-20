@@ -19,13 +19,17 @@ export default function SignInForm() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      const { error: signInError } = await signIn(email, password);
+      if (signInError) {
+        setError(signInError.message || 'Failed to sign in');
+        return;
+      }
       router.push('/');
-    } catch (err) {
-      setError('Failed to sign in');
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

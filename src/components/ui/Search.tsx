@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { searchProducts } from '@/data/products';
 import type { Product } from '@/types';
+import Image from 'next/image';
 
 export default function Search() {
   const [query, setQuery] = useState('');
@@ -156,11 +157,12 @@ export default function Search() {
                     role="option"
                     aria-selected={index === selectedIndex}
                   >
-                    <div className="relative h-12 w-12 rounded-md overflow-hidden flex-shrink-0">
-                      <img
+                    <div className="relative w-16 h-16 flex-shrink-0">
+                      <Image
                         src={product.image}
                         alt={product.name}
-                        className="object-cover"
+                        fill
+                        className="object-cover rounded-md"
                       />
                     </div>
                     <div className="ml-3 flex-1">

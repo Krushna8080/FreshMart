@@ -3,8 +3,8 @@
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, User, ArrowRight } from 'lucide-react';
-import { blogPosts } from '../../data/blog';
+import { Calendar, User } from 'lucide-react';
+import { blogPosts } from '@/data/blog';
 
 export default function Blog() {
   return (

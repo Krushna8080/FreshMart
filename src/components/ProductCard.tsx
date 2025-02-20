@@ -15,18 +15,27 @@ interface ProductCardProps {
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const [isAdding, setIsAdding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     setIsAdding(true);
-    addToCart(product);
-    setTimeout(() => setIsAdding(false), 500);
+    setError(null);
+
+    try {
+      await addToCart(product);
+      setTimeout(() => setIsAdding(false), 500);
+    } catch (err) {
+      setError('Failed to add to cart');
+      setIsAdding(false);
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   return (
     <motion.div
       whileHover={{ y: -5 }}
-      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow relative"
     >
       <Link href={`/products/${product.id}`} className="block relative aspect-square">
         <Image
@@ -60,15 +69,23 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
           <button
             onClick={handleAddToCart}
+            disabled={isAdding}
             className={`p-2 rounded-full ${
               isAdding
                 ? 'bg-green-100 text-green-600'
+                : error
+                ? 'bg-red-100 text-red-600'
                 : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-600'
             } transition-all duration-300`}
           >
             <ShoppingCart className="h-4 w-4" />
           </button>
         </div>
+        {error && (
+          <div className="absolute bottom-2 left-2 right-2 bg-red-100 text-red-600 text-sm py-1 px-2 rounded text-center">
+            {error}
+          </div>
+        )}
       </div>
     </motion.div>
   );

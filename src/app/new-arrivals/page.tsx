@@ -1,30 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Clock, Filter } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { getNewArrivals } from '@/data/products';
-import Link from 'next/link';
+import type { Product } from '@/types';
 
 export default function NewArrivals() {
   const [sortBy, setSortBy] = useState('newest');
   const newProducts = getNewArrivals();
 
-  const sortProducts = (products: any[]) => {
-    switch (sortBy) {
-      case 'price-low':
-        return [...products].sort((a, b) => a.price - b.price);
-      case 'price-high':
-        return [...products].sort((a, b) => b.price - a.price);
-      case 'newest':
-      default:
-        return products;
-    }
+  const sortProducts = (products: Product[], sortBy: string): Product[] => {
+    return [...products].sort((a, b) => {
+      switch (sortBy) {
+        case 'price-low':
+          return a.price - b.price;
+        case 'price-high':
+          return b.price - a.price;
+        case 'name':
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
   };
 
-  const sortedProducts = sortProducts(newProducts);
+  const sortedProducts = sortProducts(newProducts, sortBy);
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">

@@ -11,7 +11,7 @@ export interface BlogPost {
 
 export const blogPosts: BlogPost[] = [
   {
-    id: '1',
+    id: 'blog-1',
     title: 'The Benefits of Eating Seasonal Produce',
     excerpt: 'Discover why eating seasonal fruits and vegetables is better for your health and the environment.',
     content: `Eating seasonal produce isn't just a trend – it's a smart choice for your health, wallet, and the environment. When you eat fruits and vegetables that are in season, you're getting them at their peak nutritional value and flavor.
@@ -35,7 +35,7 @@ Here are some key benefits of eating seasonal:
     category: 'Healthy Living'
   },
   {
-    id: '2',
+    id: 'blog-2',
     title: 'Easy Meal Prep Ideas for Busy Weekdays',
     excerpt: 'Learn how to prepare healthy meals in advance to save time during the week.',
     content: `Meal prepping is a game-changer for busy professionals and families. By spending a few hours on the weekend preparing meals, you can save time, money, and stress during the week.
@@ -69,7 +69,7 @@ Remember to keep food safety in mind and properly store your prepped meals in th
     category: 'Cooking Tips'
   },
   {
-    id: '3',
+    id: 'blog-3',
     title: 'Understanding Food Labels',
     excerpt: 'A comprehensive guide to reading and understanding nutrition labels on food products.',
     content: `Reading food labels can be overwhelming, but understanding them is crucial for making informed decisions about your diet. Here's a breakdown of what to look for:
@@ -109,7 +109,7 @@ Remember that the goal is to make informed choices that align with your health g
     category: 'Education'
   },
   {
-    id: '4',
+    id: 'blog-4',
     title: 'Sustainable Shopping Guide',
     excerpt: 'Tips for making environmentally conscious choices while grocery shopping.',
     content: `Making sustainable choices at the grocery store can have a significant impact on the environment. Here's how to shop more sustainably:

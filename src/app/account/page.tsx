@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { User } from '@/types';
+// import { User } from '@supabase/supabase-js';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -24,45 +24,35 @@ export default function AccountPage() {
       setLoading(true);
       try {
         if (!authUser?.id) {
-          console.log('No authenticated user found');
           router.push('/auth/signin');
           return;
         }
 
-        console.log('Fetching profile for user:', authUser.id);
-        const { data: profileData, error: fetchError } = await supabase
+        // Try to get existing profile
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', authUser.id)
           .single();
 
-        if (fetchError) {
-          if (fetchError.code === 'PGRST116') {
-            console.log('No profile found, creating new profile');
-            // Create new profile
+        if (profileError) {
+          if (profileError.code === 'PGRST116') {
+            // Create new profile if it doesn't exist
             const { data: newProfile, error: createError } = await supabase
               .from('profiles')
-              .insert([
-                {
-                  id: authUser.id,
-                  email: authUser.email,
-                  full_name: '',
-                  phone: '',
-                  address: '',
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString()
-                }
-              ])
+              .insert({
+                id: authUser.id,
+                email: authUser.email,
+                full_name: '',
+                phone: '',
+                address: ''
+              })
               .select()
               .single();
 
-            if (createError) {
-              console.error('Error creating profile:', createError);
-              throw createError;
-            }
+            if (createError) throw createError;
 
             if (newProfile) {
-              console.log('New profile created:', newProfile);
               setFormData({
                 full_name: '',
                 phone: '',
@@ -70,11 +60,9 @@ export default function AccountPage() {
               });
             }
           } else {
-            console.error('Error fetching profile:', fetchError);
-            throw fetchError;
+            throw profileError;
           }
         } else if (profileData) {
-          console.log('Existing profile found:', profileData);
           setFormData({
             full_name: profileData.full_name || '',
             phone: profileData.phone || '',
@@ -82,7 +70,7 @@ export default function AccountPage() {
           });
         }
       } catch (error) {
-        console.error('Profile loading error:', error);
+        console.error('Error loading profile:', error);
         setMessage({ 
           type: 'error', 
           text: error instanceof Error ? error.message : 'Failed to load profile data' 
@@ -116,19 +104,22 @@ export default function AccountPage() {
         throw new Error('Not authenticated');
       }
 
-      console.log('Updating profile:', { id: authUser.id, ...formData });
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authUser.id,
-          email: authUser.email,
-          ...formData,
-          updated_at: new Date().toISOString()
-        });
+      // Validate form data
+      if (!formData.full_name.trim()) {
+        throw new Error('Full name is required');
+      }
 
-      if (error) {
-        console.error('Profile update error:', error);
-        throw error;
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.full_name.trim(),
+          phone: formData.phone.trim(),
+          address: formData.address.trim()
+        })
+        .eq('id', authUser.id);
+
+      if (updateError) {
+        throw updateError;
       }
 
       setMessage({ type: 'success', text: 'Profile updated successfully!' });

@@ -10,11 +10,12 @@ export default function VerifyEmailPage() {
         <div className="flex justify-center">
           <Mail className="h-12 w-12 text-green-500" />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Check your email
-        </h2>
-        <p className="mt-4 text-center text-gray-600 max-w-sm mx-auto">
-          We've sent you an email with a link to verify your account. Please check your inbox and follow the instructions.
+        <h1 className="text-2xl font-bold text-center mb-4">Check Your Email</h1>
+        <p className="text-gray-600 text-center mb-6">
+          We&apos;ve sent a verification link to your email address. Please check your inbox and click the link to verify your account.
+        </p>
+        <p className="text-gray-500 text-sm text-center">
+          Can&apos;t find the email? Check your spam folder or contact support.
         </p>
       </div>
 
@@ -22,7 +23,7 @@ export default function VerifyEmailPage() {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <div className="space-y-6">
             <p className="text-sm text-gray-500 text-center">
-              Didn't receive the email? Check your spam folder or{' '}
+              Didn&apos;t receive the email? Check your spam folder or{' '}
               <Link
                 href="/auth/signup"
                 className="font-medium text-green-600 hover:text-green-500"

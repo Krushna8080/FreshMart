@@ -45,11 +45,21 @@ export default function Contact() {
     setIsSubmitting(true);
 
     try {
-      // Here you would typically make an API call to your backend
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulated API call
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send message');
+      }
+
       setSubmitStatus('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
-    } catch (error) {
+    } catch {
       setSubmitStatus('error');
     } finally {
       setIsSubmitting(false);
@@ -77,7 +87,7 @@ export default function Contact() {
             Contact Us
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Have questions about our products or services? We're here to help!
+            We&apos;d love to hear from you! Please fill out the form below and we&apos;ll get back to you as soon as possible.
           </p>
         </motion.div>
 
@@ -209,7 +219,7 @@ export default function Contact() {
                   animate={{ opacity: 1, y: 0 }}
                   className="p-4 bg-green-50 text-green-600 rounded-lg text-center"
                 >
-                  Message sent successfully! We'll get back to you soon.
+                  Message sent successfully! We&apos;ll get back to you soon.
                 </motion.div>
               )}
 

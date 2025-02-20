@@ -3,24 +3,37 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/contexts/CartContext';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { Loader2 } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import { supabase } from '@/lib/supabase';
+import { CreditCard, ShoppingBag } from 'lucide-react';
 
-interface Profile {
-  id: string;
+interface FormData {
   full_name: string;
   email: string;
   address: string;
   phone: string;
+  card_number: string;
+  expiry: string;
+  cvv: string;
 }
 
-export default function CheckoutPage() {
+export default function Checkout() {
   const router = useRouter();
   const { items, total, clearCart } = useCart();
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClientComponentClient();
+  const [step, setStep] = useState<'shipping' | 'payment'>('shipping');
+  const [formData, setFormData] = useState<FormData>({
+    full_name: '',
+    email: '',
+    address: '',
+    phone: '',
+    card_number: '',
+    expiry: '',
+    cvv: ''
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -31,7 +44,6 @@ export default function CheckoutPage() {
           return;
         }
 
-        // Try to get existing profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -42,28 +54,14 @@ export default function CheckoutPage() {
           throw profileError;
         }
 
-        if (!profileData) {
-          // Create a new profile if it doesn't exist
-          const { data: newProfile, error: insertError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: user.id,
-              email: user.email,
-              full_name: '',
-              phone: '',
-              address: '',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }])
-            .select()
-            .single();
-
-          if (insertError) {
-            throw insertError;
-          }
-          setProfile(newProfile);
-        } else {
-          setProfile(profileData);
+        if (profileData) {
+          setFormData(prev => ({
+            ...prev,
+            full_name: profileData.full_name || '',
+            email: profileData.email || '',
+            address: profileData.address || '',
+            phone: profileData.phone || ''
+          }));
         }
       } catch (err) {
         console.error('Error loading profile:', err);
@@ -74,79 +72,163 @@ export default function CheckoutPage() {
     };
 
     loadData();
-  }, [router, supabase]);
+  }, [router]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setError(null);
+  };
+
+  const validateShippingInfo = () => {
+    if (!formData.full_name || !formData.email || !formData.address || !formData.phone) {
+      setError('Please fill in all required fields');
+      return false;
+    }
+    return true;
+  };
+
+  const validatePaymentInfo = () => {
+    if (!formData.card_number || !formData.expiry || !formData.cvv) {
+      setError('Please fill in all payment details');
+      return false;
+    }
+    return true;
+  };
+
+  const simulatePayment = async () => {
+    // Simulate payment processing
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setProcessing(true);
+    setError(null);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      if (step === 'shipping') {
+        if (validateShippingInfo()) {
+          setStep('payment');
+        }
+        setProcessing(false);
+        return;
+      }
+
+      if (!validatePaymentInfo()) {
+        setProcessing(false);
+        return;
+      }
+
+      // Simulate payment processing
+      const paymentSuccess = await simulatePayment();
+      if (!paymentSuccess) {
+        throw new Error('Payment failed');
+      }
+
+      console.log('Creating order with data:', {
+        user_id: user.id,
+        total_amount: total,
+        status: 'paid',
+        shipping_address: formData.address,
+        contact_phone: formData.phone
+      });
+
       // Create the order
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .insert([{
+        .insert({
           user_id: user.id,
           total_amount: total,
-          status: 'pending'
-        }])
+          status: 'paid',
+          shipping_address: formData.address,
+          contact_phone: formData.phone,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Order creation error:', orderError);
+        throw new Error(`Failed to create order: ${orderError.message}`);
+      }
+
+      if (!order) {
+        throw new Error('Order was not created');
+      }
+
+      console.log('Order created successfully:', order);
 
       // Create order items
       const orderItems = items.map(item => ({
         order_id: order.id,
         product_id: item.product.id,
         quantity: item.quantity,
-        price: item.product.price
+        price: item.product.price,
+        created_at: new Date().toISOString()
       }));
+
+      console.log('Creating order items:', orderItems);
 
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Order items creation error:', itemsError);
+        // Rollback order if items insertion fails
+        const { error: deleteError } = await supabase
+          .from('orders')
+          .delete()
+          .eq('id', order.id);
+          
+        if (deleteError) {
+          console.error('Failed to rollback order:', deleteError);
+        }
+        throw new Error(`Failed to create order items: ${itemsError.message}`);
+      }
 
-      // Update order status to processing (simulating payment)
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ status: 'processing' })
-        .eq('id', order.id);
-
-      if (updateError) throw updateError;
+      console.log('Order items created successfully');
 
       // Clear cart and redirect to success page
-      clearCart();
+      await clearCart();
       router.push(`/checkout/success?orderId=${order.id}`);
     } catch (err) {
       console.error('Error processing order:', err);
-      setError(err instanceof Error ? err.message : 'Failed to process order');
+      setError(
+        err instanceof Error 
+          ? err.message 
+          : 'Failed to process order. Please try again.'
+      );
     } finally {
-      setLoading(false);
+      setProcessing(false);
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="p-8 text-center text-red-600">{error}</div>;
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+      </div>
+    );
   }
 
   if (items.length === 0) {
     return (
-      <div className="p-8 text-center">
-        <p>Your cart is empty</p>
-        <button
-          onClick={() => router.push('/catalog')}
-          className="mt-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-        >
+      <div className="max-w-4xl mx-auto p-8 text-center">
+        <ShoppingBag className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
+        <Button onClick={() => router.push('/catalog')} variant="primary">
           Continue Shopping
-        </button>
+        </Button>
       </div>
     );
   }
@@ -160,7 +242,7 @@ export default function CheckoutPage() {
           <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
           <div className="bg-white rounded-lg shadow p-6">
             {items.map((item) => (
-              <div key={item.product.id} className="flex justify-between items-center mb-4">
+              <div key={item.id} className="flex justify-between items-center mb-4">
                 <div>
                   <p className="font-medium">{item.product.name}</p>
                   <p className="text-sm text-gray-600">
@@ -182,73 +264,120 @@ export default function CheckoutPage() {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold mb-4">Shipping Information</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            {step === 'shipping' ? 'Shipping Information' : 'Payment Information'}
+          </h2>
           <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Full Name
-                </label>
-                <input
+            {step === 'shipping' ? (
+              <div className="space-y-4">
+                <Input
+                  label="Full Name"
                   type="text"
-                  id="name"
-                  name="name"
-                  defaultValue={profile?.full_name || ''}
+                  id="full_name"
+                  name="full_name"
+                  value={formData.full_name}
+                  onChange={handleChange}
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                 />
-              </div>
 
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <input
+                <Input
+                  label="Email"
                   type="email"
                   id="email"
                   name="email"
-                  defaultValue={profile?.email || ''}
+                  value={formData.email}
+                  onChange={handleChange}
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                 />
-              </div>
 
-              <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                  Shipping Address
-                </label>
-                <textarea
-                  id="address"
-                  name="address"
-                  defaultValue={profile?.address || ''}
-                  required
-                  rows={3}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                />
-              </div>
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                    Shipping Address
+                  </label>
+                  <textarea
+                    id="address"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    required
+                    rows={3}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                  />
+                </div>
 
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                  Phone Number
-                </label>
-                <input
+                <Input
+                  label="Phone Number"
                   type="tel"
                   id="phone"
                   name="phone"
-                  defaultValue={profile?.phone || ''}
+                  value={formData.phone}
+                  onChange={handleChange}
                   required
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                 />
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <Input
+                  label="Card Number"
+                  type="text"
+                  id="card_number"
+                  name="card_number"
+                  value={formData.card_number}
+                  onChange={handleChange}
+                  placeholder="1234 5678 9012 3456"
+                  required
+                />
 
-            <button
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Expiry Date"
+                    type="text"
+                    id="expiry"
+                    name="expiry"
+                    value={formData.expiry}
+                    onChange={handleChange}
+                    placeholder="MM/YY"
+                    required
+                  />
+
+                  <Input
+                    label="CVV"
+                    type="text"
+                    id="cvv"
+                    name="cvv"
+                    value={formData.cvv}
+                    onChange={handleChange}
+                    placeholder="123"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button
               type="submit"
-              disabled={loading}
-              className="mt-6 w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
+              disabled={processing}
+              isLoading={processing}
+              className="mt-6 w-full"
             >
-              {loading ? 'Processing...' : 'Place Order'}
-            </button>
+              {processing ? 'Processing...' : step === 'shipping' ? 'Continue to Payment' : 'Place Order'}
+            </Button>
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-md text-sm">
+                {error}
+              </div>
+            )}
+
+            {step === 'payment' && (
+              <button
+                type="button"
+                onClick={() => setStep('shipping')}
+                className="mt-4 text-sm text-gray-600 hover:text-gray-800"
+              >
+                ← Back to Shipping Information
+              </button>
+            )}
           </form>
         </div>
       </div>

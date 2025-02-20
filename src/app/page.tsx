@@ -3,11 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Truck, Shield, Clock, Leaf, Award, Tag, Heart, Mail, Smartphone, CreditCard, Gift, MapPin, ChevronRight } from 'lucide-react';
+import { Truck, Shield, Clock, Leaf, Award, Smartphone, CreditCard, Gift, ChevronRight, Heart } from 'lucide-react';
 import { getFeaturedProducts, categories } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
-import CategoryCard from '@/components/CategoryCard';
-import React from 'react';
 
 export default function Home() {
   const featuredProducts = getFeaturedProducts(4);
@@ -213,7 +211,7 @@ export default function Home() {
           >
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Choose FreshMart?</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              We're committed to providing the best grocery shopping experience
+              We&apos;re committed to providing the freshest products
             </p>
           </motion.div>
         </div>

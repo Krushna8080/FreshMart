@@ -8,13 +8,14 @@ import ProductCard from '@/components/ProductCard';
 import ProductFilter from '@/components/ui/ProductFilter';
 import type { Product } from '@/types';
 
-interface CategoryPageProps {
-  params: Promise<{
+interface PageProps {
+  params: {
     category: string;
-  }>;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default function CategoryPage({ params }: CategoryPageProps) {
+export default function CategoryPage({ params, searchParams }: PageProps) {
   const resolvedParams = use(params);
   const categorySlug = resolvedParams.category;
   const [products, setProducts] = useState<Product[]>([]);

@@ -1,24 +1,31 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/auth/signin');
+    if (!loading && !user && !isRedirecting) {
+      setIsRedirecting(true);
+      const currentPath = encodeURIComponent(pathname);
+      router.push(`/auth/signin?redirectedFrom=${currentPath}`);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname, isRedirecting]);
 
-  if (loading) {
+  if (loading || isRedirecting) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex flex-col gap-4 justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-green-500" />
+        <p className="text-sm text-gray-500">
+          {loading ? 'Checking authentication...' : 'Redirecting to login...'}
+        </p>
       </div>
     );
   }
