@@ -14,11 +14,7 @@ const getImageUrl = (imageUrl: string) => {
   if (imageUrl.startsWith('http')) {
     return imageUrl;
   }
-  // If it's an Unsplash ID (no slashes), construct the Unsplash URL
-  if (!imageUrl.includes('/')) {
-    return `https://source.unsplash.com/${imageUrl}/800x600`;
-  }
-  // For local images starting with '/', ensure they are referenced correctly
+  // For local images, ensure they are referenced correctly
   return `/images/${imageUrl}`;
 };
 
