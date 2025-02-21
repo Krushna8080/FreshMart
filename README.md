@@ -1,4 +1,6 @@
 # Grocery Store E-commerce
+https://freshmart-git-main-krushna8080s-projects.vercel.app/  
+
 
 A modern e-commerce platform built with Next.js and Supabase, featuring a comprehensive shopping experience with user authentication, product management, and shopping cart functionality.
 
