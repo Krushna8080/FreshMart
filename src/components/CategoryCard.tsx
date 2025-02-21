@@ -18,8 +18,8 @@ const getImageUrl = (imageUrl: string) => {
   if (!imageUrl.includes('/')) {
     return `https://source.unsplash.com/${imageUrl}/800x600`;
   }
-  // For local images starting with '/', use as is
-  return imageUrl;
+  // For local images starting with '/', ensure they are referenced correctly
+  return `/images/${imageUrl}`;
 };
 
 export default function CategoryCard({ category }: CategoryCardProps) {
